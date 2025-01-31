@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Copyright (c) Microsoft Corporation. Licensed under the MIT License
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">  
+  <PropertyGroup>
+    <ManifestTool Condition="'$(ManifestTool)'==''">$(WindowsSdkPath)bin\$(TargetPlatformVersion)\x86\mt.exe</ManifestTool>
+  </PropertyGroup>
+
+  <Target Name="_AddWinUIActivatableTypesToAppManifestPreprocessing"
+    BeforeTargets="_AddWinUIActivatableTypesToAppManifest">
+    <CreateProperty
+      Condition="Exists('$(ApplicationManifest)')"
+      Value="$(BaseIntermediateOutputPath)merged.g.$(ApplicationManifest)">
+      <Output
+          TaskParameter="Value"
+          PropertyName="MergedApplicationManifest" />
+    </CreateProperty>
+    <CreateProperty
+      Condition="!Exists('$(ApplicationManifest)')"
+      Value="$(BaseIntermediateOutputPath)merged.g.app.manifest">
+      <Output
+          TaskParameter="Value"
+          PropertyName="MergedApplicationManifest" />
+    </CreateProperty>
+  </Target>
+  
+  <Target Name="_AddWinUIActivatableTypesToAppManifest"
+    AfterTargets="ResolveReferences"
+    BeforeTargets="CoreCompile"
+    Inputs="@(Reference);$(ApplicationManifest);@(Manifest);$(MSBuildThisFileDirectory)LiftedWinRTClassRegistrationsUnpackaged.xml"
+    Outputs="$(MergedApplicationManifest);@(Manifest)">
+    <!--Section for managed apps-->
+    <Exec
+      Condition="Exists('$(ApplicationManifest)')"
+      Command="&quot;$(ManifestTool)&quot; -nologo -manifest &quot;$(MSBuildThisFileDirectory)LiftedWinRTClassRegistrationsUnpackaged.xml&quot; &quot;$(ApplicationManifest)&quot; -out:&quot;$(MergedApplicationManifest)&quot;"
+      WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Copy
+      Condition="!Exists('$(ApplicationManifest)')"
+      SourceFiles="$(MSBuildThisFileDirectory)LiftedWinRTClassRegistrationsUnpackaged.xml"
+      DestinationFiles="$(MergedApplicationManifest)"/>
+    <CreateProperty Value="$(MergedApplicationManifest)">
+      <Output
+          TaskParameter="Value"
+          PropertyName="ApplicationManifest" />
+    </CreateProperty>
+    
+    <!--Section for native apps-->
+    <ItemGroup>
+      <Manifest Update="@(Manifest)">
+        <GeneratedManifestWithActivatableTypes>$(BaseIntermediateOutputPath)%(Filename).g%(Extension)</GeneratedManifestWithActivatableTypes>
+      </Manifest>
+    </ItemGroup>
+    <Exec
+      Condition="Exists('%(Manifest.Identity)')"
+      Command="&quot;$(ManifestTool)&quot; -nologo -manifest &quot;$(MSBuildThisFileDirectory)LiftedWinRTClassRegistrationsUnpackaged.xml&quot; &quot;%(Manifest.Identity)&quot; -out:&quot;%(Manifest.GeneratedManifestWithActivatableTypes)&quot;"
+      WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <ItemGroup>
+      <GeneratedManifest Include="@(Manifest -> '%(GeneratedManifestWithActivatableTypes)')" />
+      <Manifest Remove="@(Manifest)" />
+      <Manifest Include="@(GeneratedManifest)" />
+    </ItemGroup>
+  </Target>
+</Project>

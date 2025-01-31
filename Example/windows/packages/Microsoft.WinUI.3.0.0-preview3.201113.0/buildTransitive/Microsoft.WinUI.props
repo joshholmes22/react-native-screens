@@ -1,0 +1,38 @@
+﻿<!--
+  Copyright (c) Microsoft Corporation. Licensed under the MIT License
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <XamlCompilerPropsAndTargetsDirectory Condition="'$(XamlCompilerPropsAndTargetsDirectory)' == ''">$(MSBuildThisFileDirectory)</XamlCompilerPropsAndTargetsDirectory>
+    <!-- Set this to some value so that a check for the file existing will fail and won't be imported. -->
+    <MsAppxPackageTargets Condition="'$(UsingMicrosoftNETSdk)'=='true'">WinUI3-NET5-Projects-Dont-Use-MsAppxPackageTargets</MsAppxPackageTargets>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)native\Microsoft.ApplicationModel.Resources.WinRt.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)native\Microsoft.ApplicationModel.Resources.WinRt.props')" />
+  <Import Project="$(XamlCompilerPropsAndTargetsDirectory)Microsoft.UI.Xaml.Markup.Compiler.props" Condition="'$(MSBuildProjectExtension)'!='.wapproj'" />
+
+  <!--
+    Enable default items for .NET projects that are using the SDK-style projects
+  -->
+  <ItemGroup Condition="'$(EnableDefaultItems)' == 'true' and '$(UsingMicrosoftNETSdk)' == 'true'">
+    <ApplicationDefinition Include="App.xaml"
+                           Condition="'$(EnableDefaultApplicationDefinition)' != 'false' And Exists('$(MSBuildProjectDirectory)/App.xaml')">
+      <Generator>MSBuild:Compile</Generator>
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+    </ApplicationDefinition>
+
+    <Page Include="**/*.xaml"
+          Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);@(ApplicationDefinition)"
+          Condition="'$(EnableDefaultPageItems)' != 'false'" >
+      <Generator>MSBuild:Compile</Generator>
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+    </Page>
+
+    <None Remove="**/*.xaml"
+          Condition="'$(EnableDefaultApplicationDefinition)' != 'false' And '$(EnableDefaultPageItems)' != 'false'" />
+
+    <Content Include="Assets/**/*.*" Condition="'$(EnableDefaultAssets)'=='true'"/>
+  </ItemGroup>
+
+</Project>
